@@ -2,6 +2,9 @@ const path = require("path");
 const express = require("express");
 const hbs = require("hbs");
 
+const geocode = require('./utils/geocode');
+const forecast = require('./utils/forcast');
+
 // express is a function, it creates a new express app
 const app = express();
 
@@ -42,11 +45,43 @@ app.get("/help", (req, res) => {
 
 // app.com/weather
 app.get("/weather", (req, res) => {
-  res.send({
-    forcast: "it's raining",
-    location: "Toronto"
-  });
+  if (!req.query.address) {
+    // can only send response once so, add a return
+    return res.send({
+      error: 'You must provide an address!'
+    })
+  }
+
+  geocode(req.query.address, (err, {latitude, longitude, location} = {}) => {
+    if (err) {
+      return res.send({ err })
+    }
+
+    forecast(latitude, longitude, (err, forecastData) => {
+      if (err) {
+        return res.send({ err })
+      }
+
+      res.send({
+        forecast: forecastData,
+        location,
+        address: req.query.address
+      })
+    })
+  })
 });
+
+app.get('/products', (req, res) => {
+  if (!req.query.search) {
+    // can only send response once so, add a return
+    return res.send({
+      error: 'YOu must provide a search term'
+    })
+  }
+  res.send({
+    products: []
+  })
+})
 
 app.get("/help/*", (req, res) => {
   res.render("404", {
